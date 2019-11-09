@@ -17,7 +17,7 @@
 #include <assert.h>
 
 
-#define BUFSIZE    1000
+#define BUFSIZE   500
 
 #ifndef boolean
 # define boolean
@@ -25,8 +25,6 @@ typedef enum { false, true } bool;
 #endif /* ifndef boolean */
 
 int main(int argc, char *argv[]) {
-
-    system("Clear");
 
     if (2 != argc) {
         printf("Usage: %s <port>\n", *argv);

@@ -17,7 +17,7 @@
 #include <unistd.h>
 #include <assert.h>
 
-#define BUFSIZE 500 // MAX MTU
+#define BUFSIZE 500 
 
 int main(int argc, char **argv)
 {
@@ -26,8 +26,8 @@ int main(int argc, char **argv)
         exit(1);
     }
     
-    int clnt_sock;
-    struct sockaddr_in serv_Addr;
+    int clientSock;
+    struct sockaddr_in serverAdr;
     
     FILE* fp = NULL;
     size_t fSize;
@@ -36,62 +36,58 @@ int main(int argc, char **argv)
     int seqnum = 0;
     const char eof = 0x1A;
     
-    assert(-1 != (clnt_sock = socket(PF_INET, SOCK_DGRAM, 0)));
+    assert(-1 != (clientSock = socket(PF_INET, SOCK_DGRAM, 0)));
     
-    bzero(&serv_Addr, sizeof(serv_Addr));
-    serv_Addr.sin_family = AF_INET;
-    serv_Addr.sin_addr.s_addr = inet_addr(argv[1]);
-    serv_Addr.sin_port = htons(atoi(argv[2]));
+    bzero(&serverAdr, sizeof(serverAdr));
+    serverAdr.sin_family = AF_INET;
+    serverAdr.sin_addr.s_addr = inet_addr(argv[1]);
+    serverAdr.sin_port = htons(atoi(argv[2]));
     
     
-    //보낼 file open
     assert(fp = fopen(argv[3], "r"));
     
     
     fseek(fp, 0, SEEK_END);
-    fSize = ftell(fp); //보낼 전체 데이터 양.
+    fSize = ftell(fp); 
     fseek(fp, 0, SEEK_SET);
     
-    printf("Start...\n");
+    printf("Start\n");
     char sndBuff[BUFSIZE] = "";
     char temp[BUFSIZE - 1] = "";
     strcpy(sndBuff, "0");
     strcat(sndBuff, argv[3]);
     int i = 0;
     for(i = 0 ; i< 50; i++){
-        sendto(clnt_sock, sndBuff, BUFSIZE, 0,(const struct sockaddr*)&serv_Addr, sizeof(serv_Addr));
+        sendto(clientSock, sndBuff, BUFSIZE, 0,(const struct sockaddr*)&serverAdr, sizeof(serverAdr));
     }
     
     while(fSize > 0) {
         sendSize = fSize > BUFSIZE ? BUFSIZE : fSize;
         
-        //BUFSIZE보다 fSize가 작아지면 마지막 pkt
-        // 0:name 1:data 2:last seq
         if(fSize > BUFSIZE){
             strcpy(sndBuff, "1");
         } else{
             strcpy(sndBuff, "2");
         }
         
-        //sndPkt.dataSize만큼의 데이터를 읽어옴
+
         fread(temp, sendSize - 1, 1, fp);
         strcat(sndBuff, temp);
-        
-        //pkt전송.
-        sendto(clnt_sock, sndBuff, sendSize, 0, (const struct sockaddr*)&serv_Addr, sizeof(serv_Addr));
+
+        sendto(clientSock, sndBuff, sendSize, 0, (const struct sockaddr*)&serverAdr, sizeof(serverAdr));
         
         fSize -= sendSize;
         
         seqnum++;
     }
-    //마지막 eof전송.
+
     for(i=0;i<50;i++){
-        sendto(clnt_sock, &eof, sizeof(eof), 0, (const struct sockaddr*)&serv_Addr, sizeof(serv_Addr));
+        sendto(clientSock, &eof, sizeof(eof), 0, (const struct sockaddr*)&serverAdr, sizeof(serverAdr));
     }
-    printf("Done...\n");
+    printf("Success\n");
     fclose(fp);
     
-    close(clnt_sock);
+    close(clientSock);
     
     return 0;
 }
